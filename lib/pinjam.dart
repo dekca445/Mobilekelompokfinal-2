@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:testing1/service/firestore_service.dart';
 import 'package:testing1/userData.dart';
 
@@ -10,49 +11,77 @@ class PinjamScreen extends StatefulWidget {
 
 class _PinjamScreenState extends State<PinjamScreen> {
   FirebaseService firebaseService = new FirebaseService();
-  String? selectedNama; // Variabel untuk menyimpan nama yang dipilih
   TextEditingController jumlahController = TextEditingController();
   DateTime? selectedDate;
-
-  List<Map<String, String>> pinjamList = [];
-  List<String> namaList = []; // Daftar nama yang diambil dari Firestore
+  String? userName;
+  List<Map<String, dynamic>> pinjamanList = []; // List pinjaman pengguna
 
   @override
   void initState() {
     super.initState();
-    // Ambil daftar nama pengguna dari Firestore
-    FirebaseService().userRef.snapshots().listen((snapshot) {
-      setState(() {
-        namaList = snapshot.docs.map((doc) => doc['nama'] as String).toList();
+    // Ambil nama pengguna dari Firestore berdasarkan email pengguna yang sedang login
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      firebaseService.userRef.doc(user.email).get().then((doc) {
+        if (doc.exists && mounted) {
+          setState(() {
+            userName = doc['nama'];
+          });
+        }
       });
-    });
+      // Ambil data pinjaman pengguna
+      firebaseService.ambilDataByEmail(user.email!).listen((snapshot) {
+        if (mounted) {
+          setState(() {
+            pinjamanList = snapshot.docs.map((doc) {
+              return {
+                'jumlah': doc['jumlah'],
+                'tanggal': doc['tanggal'],
+              };
+            }).toList();
+          });
+        }
+      });
+    }
   }
 
-  void tambahPinjam(String nama, int jumlahPinjaman) {
-    if (selectedNama != null &&
-        jumlahController.text.isNotEmpty &&
-        selectedDate != null) {
+  void tambahPinjam(int jumlahPinjaman) async {
+    if (jumlahController.text.isNotEmpty && selectedDate != null && userName != null) {
       // Data pinjaman yang akan ditambahkan
       Map<String, dynamic> pinjaman = {
         'jumlah': jumlahController.text,
         'tanggal': selectedDate!.toIso8601String().split('T')[0],
+        'email': FirebaseAuth.instance.currentUser!.email, // Tambahkan email pengguna
       };
 
-      // Tambahkan pinjaman ke Firestore
-      FirebaseService().tambahPinjamanKeUser(nama, pinjaman);
-
-      // Tambahkan ke daftar lokal untuk ditampilkan
-      setState(() {
-        pinjamList.add({
-          'nama': selectedNama!,
-          'jumlah': jumlahController.text,
-          'tanggal': pinjaman['tanggal'],
-        });
+      try {
+        // Tambahkan pinjaman ke Firestore
+        await firebaseService.tambahPinjamanKeUser(FirebaseAuth.instance.currentUser!.email!, pinjaman);
 
         // Bersihkan input
-        jumlahController.clear();
-        selectedDate = null;
-      });
+        if (mounted) {
+          setState(() {
+            jumlahController.clear();
+            selectedDate = null;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Pinjaman berhasil ditambahkan!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Terjadi kesalahan: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -86,7 +115,7 @@ class _PinjamScreenState extends State<PinjamScreen> {
       },
     );
 
-    if (pickedDate != null) {
+    if (pickedDate != null && mounted) {
       setState(() {
         selectedDate = pickedDate;
       });
@@ -136,36 +165,6 @@ class _PinjamScreenState extends State<PinjamScreen> {
         color: Color.fromRGBO(40, 55, 77, 1.0),
         child: Column(
           children: [
-            // Dropdown untuk memilih nama pengguna yang terlihat seperti TextField
-            InputDecorator(
-              decoration: InputDecoration(
-                labelText: 'Pilih Nama',
-                labelStyle: TextStyle(color: Colors.teal),
-                filled: true,
-                fillColor: Colors.white12,
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: DropdownButton<String>(
-                value: selectedNama,
-                isExpanded: true,
-                hint: Text('Pilih Nama', style: TextStyle(color: Colors.teal)),
-                style: TextStyle(color: Colors.white),
-                dropdownColor: Color.fromRGBO(40, 55, 77, 1.0),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    selectedNama = newValue;
-                  });
-                },
-                items: namaList.map<DropdownMenuItem<String>>((String nama) {
-                  return DropdownMenuItem<String>(
-                    value: nama,
-                    child: Text(nama),
-                  );
-                }).toList(),
-              ),
-            ),
-            SizedBox(height: 8),
             TextField(
               controller: jumlahController,
               keyboardType: TextInputType.number,
@@ -206,14 +205,14 @@ class _PinjamScreenState extends State<PinjamScreen> {
                 ),
               ),
               onPressed: () {
-                if (selectedNama != null && jumlahController.text.isNotEmpty) {
+                if (jumlahController.text.isNotEmpty) {
                   int jumlahPinjaman = int.parse(jumlahController.text);
-                  tambahPinjam(selectedNama!, jumlahPinjaman);
+                  tambahPinjam(jumlahPinjaman);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                         content: Text(
-                            'Harap pilih nama dan masukkan jumlah pinjaman')),
+                            'Harap masukkan jumlah pinjaman')),
                   );
                 }
               },
@@ -221,67 +220,24 @@ class _PinjamScreenState extends State<PinjamScreen> {
             ),
             SizedBox(height: 16),
             Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: firebaseService.ambilData(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return Center(
-                        child: Text('Terjadi kesalahan: ${snapshot.error}'));
-                  }
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return Center(child: Text('Tidak ada data pengguna'));
-                  }
-
-                  // Ambil data dokumen
-                  final daftarUser = snapshot.data!.docs;
-
-                  return ListView.builder(
-                    itemCount: daftarUser.length,
-                    itemBuilder: (context, index) {
-                      // Ambil hanya nama pengguna
-                      DocumentSnapshot documentSnapshot = daftarUser[index];
-                      UserData userData = UserData(
-                        documentSnapshot['nama'],
-                        documentSnapshot['umur'],
-                        documentSnapshot['email'],
-                        documentSnapshot['alamat'],
-                        documentSnapshot['handphone'],
-                        documentSnapshot['pinjam'],
-                        (documentSnapshot['waktuPinjaman'] as Timestamp)
-                            .toDate(), // Konversi Timestamp ke DateTime
-                      );
-
-                      return Card(
-                        color: Color.fromRGBO(30, 40, 55, 1.0),
-                        elevation: 2,
-                        margin: EdgeInsets.symmetric(vertical: 8.0),
-                        child: ListTile(
-                          title: Text(
-                            userData.nama,
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          trailing:
-                              Icon(Icons.arrow_forward, color: Colors.teal),
-                          onTap: () {
-                            // Konversi userData ke Map<String, String>
-                            lihatDetailPinjam({
-                              'nama': userData.nama,
-                              // 'umur': userData.umur.toString(),
-                              // 'email': userData.email,
-                              // 'alamat': userData.alamat,
-                              // 'handphone': userData.handphone.toString(),
-                              'pinjam': userData.pinjam.toString(),
-                              'waktuPinjaman':
-                                  userData.waktuPinjaman.toString(),
-                              // 'pinjaman' : userData.,
-                            });
-                          },
-                        ),
-                      );
-                    },
+              child: ListView.builder(
+                itemCount: pinjamanList.length,
+                itemBuilder: (context, index) {
+                  final pinjaman = pinjamanList[index];
+                  return Card(
+                    color: Color.fromRGBO(30, 40, 55, 1.0),
+                    elevation: 2,
+                    margin: EdgeInsets.symmetric(vertical: 8.0),
+                    child: ListTile(
+                      title: Text(
+                        'Jumlah: Rp ${pinjaman['jumlah']}',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      subtitle: Text(
+                        'Tanggal: ${pinjaman['tanggal']}',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ),
                   );
                 },
               ),

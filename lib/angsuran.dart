@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:testing1/service/firestore_service.dart';
 
 class AngsuranScreen extends StatefulWidget {
   @override
@@ -6,40 +9,117 @@ class AngsuranScreen extends StatefulWidget {
 }
 
 class _AngsuranScreenState extends State<AngsuranScreen> {
-  TextEditingController bayar = TextEditingController();
-  double totalHutang = 500000; // Total hutang
-  double perBulan = 100000; // Angsuran per bulan
-  int durasiBulan = 5; // Durasi dalam bulan
-  double sisaHutang = 500000; // Sisa hutang awal
-  int? bulanTerpilih; // Bulan yang dipilih dari dropdown
+  FirebaseService firebaseService = new FirebaseService();
+  TextEditingController bayarController = TextEditingController();
+  DateTime? selectedDate;
+  String? userName;
+  List<Map<String, dynamic>> angsuranList = []; // List angsuran pengguna
+  int totalHutang = 0; // Total hutang pengguna
 
-  void bayarAngsuran() {
-    if (sisaHutang > 0 && bulanTerpilih != null) {
-      setState(() {
-        double bayar = bulanTerpilih! * perBulan;
-        sisaHutang = (sisaHutang - bayar).clamp(0, totalHutang);
+  @override
+  void initState() {
+    super.initState();
+    // Ambil nama pengguna dan total hutang dari Firestore berdasarkan email pengguna yang sedang login
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      firebaseService.userRef.doc(user.email).get().then((doc) {
+        if (doc.exists && mounted) {
+          setState(() {
+            userName = doc['nama'];
+            totalHutang = doc['pinjam'] ?? 0;
+          });
+        }
       });
+      // Ambil data angsuran pengguna
+      firebaseService.ambilAngsuranByEmail(user.email!).listen((snapshot) {
+        if (mounted) {
+          setState(() {
+            angsuranList = snapshot.docs.map((doc) {
+              return {
+                'jumlah': doc['jumlah'],
+                'tanggal': doc['tanggal'],
+              };
+            }).toList();
+          });
+        }
+      });
+    }
+  }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Pembayaran berhasil! Sisa hutang: Rp$sisaHutang'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } else if (sisaHutang == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Tidak ada hutang yang harus dibayar.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+  void tambahAngsuran(int jumlahAngsuran) async {
+    if (bayarController.text.isNotEmpty && selectedDate != null && userName != null) {
+      // Data angsuran yang akan ditambahkan
+      Map<String, dynamic> angsuran = {
+        'jumlah': bayarController.text,
+        'tanggal': selectedDate!.toIso8601String().split('T')[0],
+        'email': FirebaseAuth.instance.currentUser!.email, // Tambahkan email pengguna
+      };
+
+      try {
+        // Tambahkan angsuran ke Firestore
+        await firebaseService.tambahAngsuranKeUser(FirebaseAuth.instance.currentUser!.email!, angsuran);
+
+        // Bersihkan input
+        if (mounted) {
+          setState(() {
+            bayarController.clear();
+            selectedDate = null;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Angsuran berhasil ditambahkan!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Terjadi kesalahan: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Pilih bulan angsuran untuk membayar.'),
-          backgroundColor: Colors.orange,
+          content: Text('Harap isi semua data!'),
+          backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  void pilihTanggal(BuildContext context) async {
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            colorScheme: ColorScheme.dark(
+              primary: Colors.teal, // Warna header
+              onPrimary: Colors.white, // Warna teks header
+              surface: Color.fromRGBO(40, 55, 77, 1.0), // Latar belakang dialog
+              onSurface: Colors.white70, // Warna teks tanggal
+            ),
+            dialogBackgroundColor:
+                Color.fromRGBO(30, 40, 55, 1.0), // Latar belakang dialog
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedDate != null && mounted) {
+      setState(() {
+        selectedDate = pickedDate;
+      });
     }
   }
 
@@ -79,22 +159,9 @@ class _AngsuranScreenState extends State<AngsuranScreen> {
                 ),
               ],
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Sisa Hutang:',
-                  style: TextStyle(color: Colors.white70, fontSize: 16),
-                ),
-                Text(
-                  'Rp$sisaHutang',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
             SizedBox(height: 20),
             TextField(
-              controller: bayar,
+              controller: bayarController,
               keyboardType: TextInputType.number,
               style: TextStyle(color: Colors.white),
               decoration: InputDecoration(
@@ -106,47 +173,69 @@ class _AngsuranScreenState extends State<AngsuranScreen> {
                     OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
             ),
-            // DropdownButtonFormField<int>(
-            //   decoration: InputDecoration(
-            //     labelText: 'Bayar Berapa Bulan?',
-            //     filled: true,
-            //     fillColor: Colors.white70,
-            //     border: OutlineInputBorder(
-            //       borderRadius: BorderRadius.circular(8.0),
-            //     ),
-            //   ),
-            //   value: bulanTerpilih,
-            //   items: List.generate(
-            //     durasiBulan,
-            //     (index) => DropdownMenuItem(
-            //       value: index + 1,
-            //       child: Text('${index + 1} bulan'),
-            //     ),
-            //   ),
-            //   onChanged: sisaHutang == 0
-            //       ? null
-            //       : (value) {
-            //           setState(() {
-            //             bulanTerpilih = value;
-            //           });
-            //         },
-            // ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: sisaHutang == 0 ? null : bayarAngsuran,
-              child: Text('Bayar'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: sisaHutang == 0
-                    ? Colors.grey
-                    : Color.fromRGBO(0, 119, 119, 1.0),
-              ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    selectedDate == null
+                        ? 'Pilih Tanggal'
+                        : 'Tanggal: ${selectedDate!.toIso8601String().split('T')[0]}',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () => pilihTanggal(context),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+                  child: Text('Pilih'),
+                ),
+              ],
             ),
-            SizedBox(height: 20),
-            Text(
-              sisaHutang > 0
-                  ? 'Sisa hutang Anda saat ini adalah Rp$sisaHutang'
-                  : 'Anda tidak memiliki hutang.',
-              style: TextStyle(color: Colors.white70, fontSize: 16),
+            SizedBox(height: 16),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () {
+                if (bayarController.text.isNotEmpty) {
+                  int jumlahAngsuran = int.parse(bayarController.text);
+                  tambahAngsuran(jumlahAngsuran);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text(
+                            'Harap masukkan jumlah angsuran')),
+                  );
+                }
+              },
+              child: Text('Bayar'),
+            ),
+            SizedBox(height: 16),
+            Expanded(
+              child: ListView.builder(
+                itemCount: angsuranList.length,
+                itemBuilder: (context, index) {
+                  final angsuran = angsuranList[index];
+                  return Card(
+                    color: Color.fromRGBO(30, 40, 55, 1.0),
+                    elevation: 2,
+                    margin: EdgeInsets.symmetric(vertical: 8.0),
+                    child: ListTile(
+                      title: Text(
+                        'Jumlah: Rp ${angsuran['jumlah']}',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      subtitle: Text(
+                        'Tanggal: ${angsuran['tanggal']}',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
           ],
         ),

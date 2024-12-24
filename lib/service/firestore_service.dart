@@ -13,7 +13,7 @@ class FirebaseService {
 
   // Menambahkan data User baru
   void tambah(UserData userData) {
-    DocumentReference documentReference = userRef.doc(userData.nama);
+    DocumentReference documentReference = userRef.doc(userData.email);
     documentReference.set(userData.toJson());
   }
 
@@ -24,39 +24,67 @@ class FirebaseService {
 
   // Menghapus data User
   void hapus(UserData userData) {
-    DocumentReference documentReference = userRef.doc(userData.nama);
+    DocumentReference documentReference = userRef.doc(userData.email);
     documentReference.delete();
   }
 
   // Fungsi untuk menambahkan pinjaman ke user
-  Future<void> tambahPinjamanKeUser(String nama, Map<String, dynamic> pinjaman) async {
+  Future<void> tambahPinjamanKeUser(String email, Map<String, dynamic> pinjaman) async {
     try {
-      // Query pengguna berdasarkan nama
-      QuerySnapshot userSnapshot = await userRef.where('nama', isEqualTo: nama).get();
+      // Tambahkan pinjaman ke koleksi 'pinjaman'
+      await firestore.collection('pinjaman').add(pinjaman);
 
-      if (userSnapshot.docs.isNotEmpty) {
-        String userId = userSnapshot.docs.first.id; // Ambil ID dokumen
-        DateTime waktuPinjaman = DateTime.now(); // Mendapatkan waktu pinjaman
+      // Perbarui total hutang pengguna
+      DocumentReference userDoc = userRef.doc(email);
+      await firestore.runTransaction((transaction) async {
+        DocumentSnapshot snapshot = await transaction.get(userDoc);
+        if (!snapshot.exists) {
+          throw Exception("User does not exist!");
+        }
+        int newTotalHutang = (snapshot['pinjam'] ?? 0) + int.parse(pinjaman['jumlah']);
+        transaction.update(userDoc, {'pinjam': newTotalHutang});
+      });
 
-        // Perbarui pinjaman dan waktu pinjaman
-        await userRef.doc(userId).update({
-          'pinjam': FieldValue.increment(int.parse(pinjaman['jumlah'])),
-          'waktuPinjaman': waktuPinjaman, // Menyimpan waktu pinjaman
-        });
-
-        print('Pinjaman berhasil ditambahkan');
-      } else {
-        print('Pengguna tidak ditemukan');
-      }
+      print('Pinjaman berhasil ditambahkan');
     } catch (e) {
       print('Terjadi kesalahan: $e');
     }
   }
-Stream<QuerySnapshot> ambilDataByEmail(String email) {
+
+  // Fungsi untuk menambahkan angsuran ke user
+  Future<void> tambahAngsuranKeUser(String email, Map<String, dynamic> angsuran) async {
+    try {
+      // Tambahkan angsuran ke koleksi 'angsuran'
+      await firestore.collection('angsuran').add(angsuran);
+
+      // Perbarui sisa hutang pengguna
+      DocumentReference userDoc = userRef.doc(email);
+      await firestore.runTransaction((transaction) async {
+        DocumentSnapshot snapshot = await transaction.get(userDoc);
+        if (!snapshot.exists) {
+          throw Exception("User does not exist!");
+        }
+        int newSisaHutang = (snapshot['pinjam'] ?? 0) - int.parse(angsuran['jumlah']);
+        transaction.update(userDoc, {'pinjam': newSisaHutang});
+      });
+
+      print('Angsuran berhasil ditambahkan');
+    } catch (e) {
+      print('Terjadi kesalahan: $e');
+    }
+  }
+
+  Stream<QuerySnapshot> ambilDataByEmail(String email) {
     return firestore
         .collection('pinjaman') // Nama koleksi, sesuaikan dengan struktur Firestore Anda
         .where('email', isEqualTo: email) // Filter berdasarkan email
         .snapshots(); // Mendapatkan data secara realtime
   }
 
+  Stream<QuerySnapshot> ambilAngsuranByEmail(String email) {
+    return firestore
+        .collection('angsuran') // Nama koleksi, sesuaikan dengan struktur Firestore Anda
+        .where('email', isEqualTo: email) // Filter berdasarkan email
+        .snapshots(); // Mendapatkan data secara realtime
+  }
 }

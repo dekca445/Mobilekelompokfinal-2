@@ -24,7 +24,7 @@ class UserData {
       "email": this.email,
       "alamat": this.alamat,
       "handphone": this.handphone,
-      "pinjam": this.pinjam, // Menyimpan null jika belum ada pinjaman
+      "pinjam": this.pinjam ?? 0, // Menyimpan null jika belum ada pinjaman
       "waktuPinjaman": this.waktuPinjaman?.toString(), // Menyimpan waktu pinjaman
     };
   }

@@ -24,7 +24,7 @@ class AuthService {
       );
 
       // Simpan data pengguna ke Firestore, role diatur sebagai null
-      await _firestore.collection('users').doc(userCredential.user!.uid).set({
+      await _firestore.collection('users').doc(email.trim()).set({
         'email': email.trim(),
         'role': 'User', 
       });
@@ -80,7 +80,7 @@ class AuthService {
       await Future.delayed(const Duration(seconds: 1));
       DocumentSnapshot userDoc = await _firestore
           .collection('users')
-          .doc(userCredential.user!.uid)
+          .doc(email.trim())
           .get();
 
       return userDoc['role'];
@@ -177,38 +177,38 @@ class AuthService {
   }
 
   // Delete Account
-  Future<void> deleteAccount({
-    required BuildContext context,
-  }) async {
-    try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await user.delete();
-        Fluttertoast.showToast(
-          msg: "Akun berhasil dihapus.",
-          toastLength: Toast.LENGTH_LONG,
-          gravity: ToastGravity.SNACKBAR,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-          fontSize: 14.0,
-        );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (BuildContext context) => Login(),
-          ),
-        );
-        showSuccessPopup3(context);
-      }
-    } catch (e) {
-      Fluttertoast.showToast(
-        msg: "Terjadi kesalahan saat menghapus akun.",
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.SNACKBAR,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-        fontSize: 14.0,
-      );
-    }
-  }
+  // Future<void> deleteAccount({
+  //   required BuildContext context,
+  // }) async {
+  //   try {
+  //     User? user = FirebaseAuth.instance.currentUser;
+  //     if (user != null) {
+  //       await user.delete();
+  //       Fluttertoast.showToast(
+  //         msg: "Akun berhasil dihapus.",
+  //         toastLength: Toast.LENGTH_LONG,
+  //         gravity: ToastGravity.SNACKBAR,
+  //         backgroundColor: Colors.red,
+  //         textColor: Colors.white,
+  //         fontSize: 14.0,
+  //       );
+  //       Navigator.pushReplacement(
+  //         context,
+  //         MaterialPageRoute(
+  //           builder: (BuildContext context) => Login(),
+  //         ),
+  //       );
+  //       showSuccessPopup3(context);
+  //     }
+  //   } catch (e) {
+  //     Fluttertoast.showToast(
+  //       msg: "Terjadi kesalahan saat menghapus akun.",
+  //       toastLength: Toast.LENGTH_LONG,
+  //       gravity: ToastGravity.SNACKBAR,
+  //       backgroundColor: Colors.red,
+  //       textColor: Colors.white,
+  //       fontSize: 14.0,
+  //     );
+  //   }
+  // }
 }

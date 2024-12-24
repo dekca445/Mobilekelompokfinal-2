@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:testing1/angsuran.dart';
+import 'package:testing1/dashboarduser.dart';
 import 'package:testing1/pinjam.dart';
 import 'package:testing1/service/auth_service.dart';
 import 'package:testing1/setting.dart'; // Import halaman Setting
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:testing1/superadmin.dart';
 import 'package:testing1/tes.dart';
 import 'package:testing1/userData.dart';
 import 'package:testing1/service/firestore_service.dart';
@@ -16,7 +18,7 @@ class Dashboard extends StatefulWidget {
 
 class _DashboardState extends State<Dashboard> {
   FirebaseService firebaseService = new FirebaseService();
-  String name = "Pelanggan"; // Nama default jika belum diubah
+  String name = "Mimin ganteng"; // Nama default jika belum diubah
   String email = ""; // Email dari Firebase Auth
 
   @override
@@ -39,55 +41,56 @@ class _DashboardState extends State<Dashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> nama = ['Anggota', 'Pinjam', 'Angsuran'];
+    final List<String> nama = ['Anggota', 'Pinjam', 'Admin'];
     final List<IconData> icons = [
       Icons.person_add, // Ikon untuk Anggota
       Icons.monetization_on, // Ikon untuk Pinjam
       Icons.payment, // Ikon untuk Angsuran
     ];
 
-  void lihatDetailAnggota(Map<String, String> anggota) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Color.fromRGBO(40, 55, 77, 1.0),
-          title: Text('Detail Anggota', style: TextStyle(color: Colors.white)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Nama: ${anggota['nama']}',
-                  style: TextStyle(color: Colors.white70)),
-              Text('Umur: ${anggota['umur']}',
-                  style: TextStyle(color: Colors.white70)),
-              Text('Email: ${anggota['email']}',
-                  style: TextStyle(color: Colors.white70)),
-              Text('Alamat: ${anggota['alamat']}',
-                  style: TextStyle(color: Colors.white70)),
-              Text('Handphone: ${anggota['handphone']}',
-                  style: TextStyle(color: Colors.white70)),
-              Text('Pinjaman: ${anggota['pinjam']}',
-                  style: TextStyle(color: Colors.white70)),
-              Text('waktu: ${anggota['waktuPinjaman']}',
-                  style: TextStyle(color: Colors.white70)),
-              // Text('Jumlah: Rp ${pinjam['jumlah']}', 
-              // style: TextStyle(color: Colors.white70)),
-              // Text('Tanggal: ${pinjam['tanggal']}', 
-              // style: TextStyle(color: Colors.white70)),
-
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Tutup', style: TextStyle(color: Colors.teal)),
+    void lihatDetailAnggota(Map<String, String> anggota) {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            backgroundColor: Color.fromRGBO(40, 55, 77, 1.0),
+            title:
+                Text('Detail Anggota', style: TextStyle(color: Colors.white)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Nama: ${anggota['nama']}',
+                    style: TextStyle(color: Colors.white70)),
+                Text('Umur: ${anggota['umur']}',
+                    style: TextStyle(color: Colors.white70)),
+                // Text('Email: ${anggota['email']}',
+                //     style: TextStyle(color: Colors.white70)),
+                Text('Alamat: ${anggota['alamat']}',
+                    style: TextStyle(color: Colors.white70)),
+                Text('Handphone: ${anggota['handphone']}',
+                    style: TextStyle(color: Colors.white70)),
+                Text('Pinjaman: ${anggota['pinjam']}',
+                    style: TextStyle(color: Colors.white70)),
+                // Text('waktu: ${anggota['waktuPinjaman']}',
+                //     style: TextStyle(color: Colors.white70)),
+                // Text('Jumlah: Rp ${pinjam['jumlah']}',
+                // style: TextStyle(color: Colors.white70)),
+                // Text('Tanggal: ${pinjam['tanggal']}',
+                // style: TextStyle(color: Colors.white70)),
+              ],
             ),
-          ],
-        );
-      },
-    );
-  }
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('Tutup', style: TextStyle(color: Colors.teal)),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Aplikasi Simpan Pinjam'),
@@ -129,12 +132,13 @@ class _DashboardState extends State<Dashboard> {
                     MaterialPageRoute(
                       builder: (context) => SettingsPage(),
                     ),
-                  ).then((newName) {
-                    // Jika ada perubahan nama dari halaman Settings
-                    if (newName != null) {
-                      updateName(newName); // Update nama di Dashboard
-                    }
-                  });
+                  );
+                  // .then((newName) {
+                  //   // Jika ada perubahan nama dari halaman Settings
+                  //   if (newName != null) {
+                  //     updateName(newName); // Update nama di Dashboard
+                  //   }
+                  // });
                 },
               ),
               Divider(color: Colors.white70),
@@ -196,13 +200,13 @@ class _DashboardState extends State<Dashboard> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => PinjamScreen()),
+                                builder: (context) => UserDashboard()),
                           );
                         } else {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => AngsuranScreen()),
+                                builder: (context) => AdminScreen()),
                           );
                         }
                       },
@@ -262,14 +266,16 @@ class _DashboardState extends State<Dashboard> {
                       // Ambil hanya nama pengguna
                       DocumentSnapshot documentSnapshot = daftarUser[index];
                       UserData userData = UserData(
-  documentSnapshot['nama'],
-  documentSnapshot['umur'],
-  documentSnapshot['email'],
-  documentSnapshot['alamat'],
-  documentSnapshot['handphone'],
-  documentSnapshot['pinjam'],
-  (documentSnapshot['waktuPinjaman'] as Timestamp).toDate(),  // Konversi Timestamp ke DateTime
-);
+                        documentSnapshot['nama'],
+                        documentSnapshot['umur'],
+                        documentSnapshot['email'],
+                        documentSnapshot['alamat'],
+                        documentSnapshot['handphone'],
+                        documentSnapshot['pinjam'],
+                        (documentSnapshot['waktuPinjaman'] != null
+          ? (documentSnapshot['waktuPinjaman'] as Timestamp).toDate()
+          : null), // Pengecekan Timestamp
+                      );
 
                       return Card(
                         color: Color.fromRGBO(30, 40, 55, 1.0),
@@ -287,11 +293,12 @@ class _DashboardState extends State<Dashboard> {
                             lihatDetailAnggota({
                               'nama': userData.nama,
                               'umur': userData.umur.toString(),
-                              'email': userData.email,
+                              // 'email': userData.email,
                               'alamat': userData.alamat,
                               'handphone': userData.handphone.toString(),
                               'pinjam': userData.pinjam.toString(),
-                              'waktuPinjaman': userData.waktuPinjaman.toString(),
+                              'waktuPinjaman':
+                                  userData.waktuPinjaman.toString(),
                               // 'pinjaman' : userData.,
                             });
                           },

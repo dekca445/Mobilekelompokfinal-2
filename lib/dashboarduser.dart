@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:testing1/kalkulator.dart';
 import 'package:testing1/service/auth_service.dart';
 import 'package:testing1/service/firestore_service.dart';
 import 'package:testing1/pinjam.dart';
 import 'package:testing1/angsuran.dart';
+import 'package:testing1/setting.dart';
 
 class UserDashboard extends StatefulWidget {
   @override
@@ -23,6 +25,14 @@ class _UserDashboardState extends State<UserDashboard> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       email = user.email ?? "Email Tidak Diketahui";
+      // Ambil nama pengguna dari Firestore
+      firebaseService.userRef.doc(email).get().then((doc) {
+        if (doc.exists) {
+          setState(() {
+            name = doc['nama'];
+          });
+        }
+      });
     }
   }
 
@@ -59,6 +69,30 @@ class _UserDashboardState extends State<UserDashboard> {
                 ),
               ),
               ListTile(
+                leading: Icon(Icons.calculate),
+                title: Text('Setting'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SettingsPage(),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.calculate),
+                title: Text('kalkulator'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => KalkulatorScreen(),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
                 leading: Icon(Icons.logout),
                 title: Text('Logout'),
                 onTap: () async {
@@ -92,6 +126,44 @@ class _UserDashboardState extends State<UserDashboard> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+            ),
+            SizedBox(height: 20),
+            StreamBuilder<DocumentSnapshot>(
+              stream: firebaseService.userRef.doc(email).snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Terjadi kesalahan: ${snapshot.error}',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  );
+                }
+                if (!snapshot.hasData || !snapshot.data!.exists) {
+                  return Center(
+                    child: Text(
+                      'Tidak ada data pengguna',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  );
+                }
+
+                final userData = snapshot.data!.data() as Map<String, dynamic>;
+                final totalHutang = userData['pinjam'] ?? 0;
+
+                return Center(
+                  child: Text(
+                    "Total Hutang Anda: Rp $totalHutang",
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 18,
+                    ),
+                  ),
+                );
+              },
             ),
             SizedBox(height: 20),
 
@@ -192,11 +264,11 @@ class _UserDashboardState extends State<UserDashboard> {
                         margin: EdgeInsets.symmetric(vertical: 8.0),
                         child: ListTile(
                           title: Text(
-                            data['pinjam'],
+                            'Jumlah: Rp ${data['jumlah']}',
                             style: TextStyle(color: Colors.white),
                           ),
                           subtitle: Text(
-                            'Tanggal: ${data['waktuPinjaman']}',
+                            'Tanggal: ${data['tanggal']}',
                             style: TextStyle(color: Colors.white70),
                           ),
                         ),
