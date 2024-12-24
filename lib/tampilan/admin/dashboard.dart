@@ -1,14 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:testing1/angsuran.dart';
-import 'package:testing1/dashboarduser.dart';
-import 'package:testing1/pinjam.dart';
+import 'package:testing1/tampilan/user/angsuran.dart';
+import 'package:testing1/tampilan/user/dashboarduser.dart';
+import 'package:testing1/tampilan/pinjam.dart';
 import 'package:testing1/service/auth_service.dart';
-import 'package:testing1/setting.dart'; // Import halaman Setting
+import 'package:testing1/tampilan/setting.dart'; // Import halaman Setting
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:testing1/superadmin.dart';
-import 'package:testing1/tes.dart';
-import 'package:testing1/userData.dart';
+import 'package:testing1/tampilan/admin/superadmin.dart';
+import 'package:testing1/tampilan/tes.dart';
+import 'package:testing1/service/userData.dart';
 import 'package:testing1/service/firestore_service.dart';
 
 class Dashboard extends StatefulWidget {

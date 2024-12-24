@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:testing1/userData.dart';
+import 'package:testing1/service/userData.dart';
 
 class FirebaseService {
   static final String COLLECTION_REF = 'user';

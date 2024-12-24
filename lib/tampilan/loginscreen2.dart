@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:testing1/Pelupa.dart';
-import 'package:testing1/dashboard.dart';
-import 'package:testing1/dashboarduser.dart';
-import 'package:testing1/register.dart';
+import 'package:testing1/tampilan/Pelupa.dart';
+import 'package:testing1/tampilan/admin/dashboard.dart';
+import 'package:testing1/tampilan/user/dashboarduser.dart';
+import 'package:testing1/tampilan/register.dart';
 import 'package:testing1/service/auth_service.dart';
 
 class Login extends StatelessWidget {

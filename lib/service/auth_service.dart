@@ -2,9 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:testing1/dashboard.dart';
-import 'package:testing1/loginscreen2.dart';
-import 'package:testing1/popup.dart';
+import 'package:testing1/tampilan/admin/dashboard.dart';
+import 'package:testing1/tampilan/loginscreen2.dart';
+import 'package:testing1/service/popup.dart';
 
 class AuthService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

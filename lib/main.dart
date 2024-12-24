@@ -1,11 +1,11 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:testing1/dashboard.dart';
-import 'package:testing1/dashboarduser.dart';
+import 'package:testing1/tampilan/admin/dashboard.dart';
+import 'package:testing1/tampilan/user/dashboarduser.dart';
 import 'package:testing1/firebase_options.dart';
 import 'package:testing1/loginscreen.dart';
-import 'package:testing1/loginscreen2.dart';
-import 'package:testing1/tes.dart';
+import 'package:testing1/tampilan/loginscreen2.dart';
+import 'package:testing1/tampilan/tes.dart';
 
 void main() async {
     WidgetsFlutterBinding.ensureInitialized();

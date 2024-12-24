@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:testing1/popup.dart';
+import 'package:testing1/service/popup.dart';
 import 'package:testing1/service/auth_service.dart';
 
 class SettingsPage extends StatefulWidget {

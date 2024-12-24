@@ -1,12 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:testing1/kalkulator.dart';
+import 'package:testing1/tampilan/kalkulator.dart';
 import 'package:testing1/service/auth_service.dart';
 import 'package:testing1/service/firestore_service.dart';
-import 'package:testing1/pinjam.dart';
-import 'package:testing1/angsuran.dart';
-import 'package:testing1/setting.dart';
+import 'package:testing1/tampilan/pinjam.dart';
+import 'package:testing1/tampilan/user/angsuran.dart';
+import 'package:testing1/tampilan/setting.dart';
 
 class UserDashboard extends StatefulWidget {
   @override

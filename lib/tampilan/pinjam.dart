@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:testing1/service/firestore_service.dart';
-import 'package:testing1/userData.dart';
+import 'package:testing1/service/userData.dart';
 
 class PinjamScreen extends StatefulWidget {
   @override
