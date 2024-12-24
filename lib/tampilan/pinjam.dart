@@ -85,7 +85,7 @@ class _PinjamScreenState extends State<PinjamScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Harap isi semua data!'),
+          content: Text('Akunmu Belum Di veriv admin!'),
           backgroundColor: Colors.red,
         ),
       );
